@@ -1,3 +1,5 @@
+You will need rtmpdump to start.
+`sudo apt-get install rtmpdump`
 Just type the name of the course without space. "EE225" for example.
 Press Ctrl+C if any download starts. You will be provided a prompt to choose your semester / year.
 Choose 1,2 or 3 appropriately.
