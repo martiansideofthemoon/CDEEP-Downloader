@@ -21,9 +21,10 @@ base_url = "rtmp://epay.cdeep.iitb.ac.in:1935/vod/Videos/"+active["semester"]+ac
 downloaded = []
 for i in range(1,50):
 	for j in ['','-A','-B','-C','-D']:
-		code = os.system("rtmpdump -r "+base_url+str(i)+j+"."+active["filetype"]+" -o "+course+"-"+str(i)+"."+active["filetype"])
+		code = os.system("rtmpdump -r "+base_url+str(i)+j+"."+active["filetype"]+" -o "+course+"-"+str(i)+j+"."+active["filetype"])
+		print code
 		if (code==256):
-			os.system("rm "+course+"-"+str(i)+"."+active["filetype"]);
+			os.system("rm "+course+"-"+str(i)+j+"."+active["filetype"]);
 			continue;
 		downloaded.append({"number":i,"type":j});
 print downloaded
