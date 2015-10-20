@@ -1,6 +1,17 @@
-import os,re
-from subprocess import Popen
-course = raw_input("Please enter your course ")
+import os,re,subprocess
+
+def validate_input(course):
+	courseRegex = re.compile(r'^([A-Z][A-Z])\s?(\d\d\d)$',re.VERBOSE)
+	result = courseRegex.search(course)
+	if result==None:
+		return 0
+	else:
+		return result.group(1)+result.group(2)
+
+course = raw_input("Please enter your course :- ")
+course = validate_input(course)
+
+# 'A' represents Autumn and 'S' represents Spring
 type1 = ['A','S']
 year = ['02','03','04','05','06','07','08','09','10','11','12','13','14','15']
 settings = []
@@ -28,3 +39,4 @@ for i in range(1,50):
 			continue;
 		downloaded.append({"number":i,"type":j});
 print downloaded
+
