@@ -1,4 +1,12 @@
-import os,re,subprocess,itertools,time,sys
+import os,re,subprocess,itertools,time,sys,thread
+
+base_url = "rtmp://epay.cdeep.iitb.ac.in:1935/vod/Videos/"
+
+def base_thread(threadName,url,course,file_number,filetype):
+	command = ["rtmpdump","-r "+url,"-o "+course+file_number+"."+filetype]
+	process = subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+	while(process.poll()==None):
+		pass
 
 def validate_input(course):
 	courseRegex = re.compile(r'^([A-Z][A-Z])\s?(\d\d\d)$',re.VERBOSE)
@@ -8,11 +16,31 @@ def validate_input(course):
 	else:
 		return result.group(1)+result.group(2)
 
-def print_progress(count):
+def print_progress(message, count, total):
 	sys.stdout.flush()
-	percent = count*100/112
-	progress = "Running..."+str(percent)+"% "
+	percent = count*100/total
+	progress = message+" "+str(percent)+"% "
 	print "\r"+progress,
+
+def generate_urls(course, choice):
+	urls=[]
+	filestyles = ['','-A','-B','-C','-D']
+	count=1
+	for i,j in itertools.product(range(1,50),filestyles):
+		url = base_url+choice["semester"]+choice["year"]+"/"+course+"/"+course+"-L"+str(i)+j+"."+choice["filetype"]
+		command = ["rtmpdump","-r "+url,"-o test."+j]
+		print_progress("Generating URLs...",count,245)
+		count+=1
+		start=time.clock()
+		process = subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+		while (process.poll()==None):
+			if (time.clock()-start>1):
+				process.kill()
+				urls.append(url)
+				break
+	return urls
+
+
 
 course = raw_input("Please enter your course :- ")
 course = validate_input(course)
@@ -26,15 +54,16 @@ year = ['02','03','04','05','06','07','08',
 filetype = ['mp4','flv']
 # Type of file (complete or part A to look for during brute force
 brute_types = ['','-A']
-base_url = "rtmp://epay.cdeep.iitb.ac.in:1935/vod/Videos/"
 courses_found = []
 count=1
 for i,j,k,l in itertools.product(brute_types,filetype,semester,year):
+	
 	url = base_url+k+l+"/"+course+"/"+course+"-L1"+i+"."+j
 	command = ["rtmpdump","-r "+url,"-o test."+j]
 
-	print_progress(count)
+	print_progress("Brute Forcing...",count,112)
 	count+=1
+
 	start=time.clock()
 	process = subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 	while (process.poll()==None):
@@ -43,38 +72,29 @@ for i,j,k,l in itertools.product(brute_types,filetype,semester,year):
 			courses_found.append({"semester":k,"year":l,"filetype":j});
 			break
 
+if len(courses_found)==0:
+	print "\nNo courses found. Check CDEEP / internet connection"
+	sys.exit()
 print "\nWe found the following courses. Choose one. "
 num = 1
-for course in courses_found:
-	if (course["semester"]=="S"):
-		print str(num)+". Spring 20"+course["year"]
+for c in courses_found:
+	if (c["semester"]=="S"):
+		print str(num)+". Spring 20"+c["year"]
 	else:
-		print str(num)+". Autumn 20"+course["year"]
+		print str(num)+". Autumn 20"+c["year"]
 	num+=1
+select = input("Enter your choice. 0 to quit. ")
+if (select==0):
+	sys.exit()
+choice = courses_found[select-1]
+urls = generate_urls(course, choice)
+print urls
 
-"""
-for m in ['','-A']:
-	for k in ['mp4','flv']:
-		for i in type1:
-			for j in year:
-				if (os.system("rtmpdump -r rtmp://epay.cdeep.iitb.ac.in:1935/vod/Videos/"+i+j+"/"+course+"/"+course+"-L1"+m+"."+k+" -o civil."+k))==256:
-					continue
-				else:
-					
-print "The following courses were found :- "					
-for i in settings:
-	print i["semester"]+" "+i["year"]
-choice = input("Enter the course you would like (please enter a number :P ) ");
-active = settings[choice-1]
-base_url = "rtmp://epay.cdeep.iitb.ac.in:1935/vod/Videos/"+active["semester"]+active["year"]+"/"+course+"/"+course+"-L";
-downloaded = []
-for i in range(1,50):
-	for j in ['','-A','-B','-C','-D']:
-		code = os.system("rtmpdump -r "+base_url+str(i)+j+"."+active["filetype"]+" -o "+course+"-"+str(i)+j+"."+active["filetype"])
-		print code
-		if (code==256):
-			os.system("rm "+course+"-"+str(i)+j+"."+active["filetype"]);
-			continue;
-		downloaded.append({"number":i,"type":j});
-print downloaded
-"""
+k=1
+proc = []
+for url in urls:
+	command = ["rtmpdump","-r "+url,"-o "+course+str(k)+"."+choice["filetype"]]
+	proc.append(subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE))
+	k+=1
+for p in proc:
+	p.wait()
